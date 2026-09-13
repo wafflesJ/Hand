@@ -1,4 +1,5 @@
 #include <string.h>
+#include <servo.h>
 
 #define MAX_DATA_LENGTH 100
 #define NUM_FINGERS 5
@@ -10,9 +11,16 @@ int bufferIndex = 0;
 // Parsed finger extension values
 float finger_values[NUM_FINGERS];
 
+Servo servos[NUM_FINGERS];
+
 void setup() {
   Serial.begin(9600);
   Serial.println("Arduino Finger Extension Reader Ready");
+
+  for(int i = 0; i<NUM_FINGERS; i++) {
+    pinMode(9+i, OUTPUT);
+    servos[i].attach(9+i);
+  }
 }
 
 void loop() {
@@ -54,6 +62,12 @@ void loop() {
         Serial.print(finger_values[3]);
         Serial.println(", Pinky=");
         Serial.println(finger_values[4]);
+
+        for(int i = 0; i<NUM_FINGERS; i++) {
+          int angle = map(finger_values[i],90,180,0,180);
+          servos[i].write(angle);
+        }
+
       }
       
       // Clear buffer for next message
