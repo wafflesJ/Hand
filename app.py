@@ -21,6 +21,59 @@ from model import PointHistoryClassifier
 VIDEO = 0
 
 
+def calculate_finger_extension(landmark):
+    """Calculate estimated extension of each finger from landmark coordinates.
+
+    Parameters
+    ----------
+    landmark : np.ndarray
+        21 hand landmarks, shape (21, 3) or (21, 2), [x, y, z]
+
+    Returns
+    -------
+    dict
+        Finger extension angles in degrees: thumb, index, middle, ring, pinky
+    """
+    def angle_between(p1, p2, p3):
+        """Calculate angle at p2 formed by lines p1-p2 and p3-p2."""
+        v1 = p1 - p2
+        v2 = p3 - p2
+        unit_v1 = v1 / np.linalg.norm(v1)
+        unit_v2 = v2 / np.linalg.norm(v2)
+        dot_product = np.clip(np.dot(unit_v1, unit_v2), -1.0, 1.0)
+        return np.degrees(np.arccos(dot_product))
+
+    # Landmark indices for each finger (MCP, PIP, DIP joints)
+    fingers = {
+        'index': [5, 6, 7],   # MCP, PIP, DIP
+        'middle': [9, 10, 11],
+        'ring': [13, 14, 15],
+        'pinky': [17, 18, 19],
+    }
+
+    # Thumb uses joints 0,1,2,3,4 (wrist→tip)
+    thumb_angles = [
+        angle_between(landmark[0], landmark[1], landmark[2]),
+        angle_between(landmark[1], landmark[2], landmark[3]),
+        angle_between(landmark[2], landmark[3], landmark[4]),
+    ]
+
+    finger_extensions = {'thumb': np.mean(thumb_angles)}
+
+    for name, joints in fingers.items():
+        mcp, pip, dip = [int(j) for j in joints]
+        # Tip index: next joint after DIP (8 for index, 12 for middle, 16 for ring, 20 for pinky)
+        tip = int(mcp + 3)
+        angles = [
+            angle_between(landmark[0], landmark[mcp], landmark[pip]),
+            angle_between(landmark[mcp], landmark[pip], landmark[dip]),
+            angle_between(landmark[mcp], landmark[dip], landmark[tip]),
+        ]
+        finger_extensions[name] = np.mean(angles)
+
+    return finger_extensions
+
+
 def get_args():
     parser = argparse.ArgumentParser()
 
@@ -316,6 +369,10 @@ def main():
                 pre_processed_point_histories = []
                 for (trackid, x1y1), landmark, rotated_image_size_leftright, not_rotate_rect in \
                     zip(palm_trackid_box_x1y1s.items(), hand_landmarks, rotated_image_size_leftrights, not_rotate_rects):
+
+                    # Print finger extension estimates
+                    extensions = calculate_finger_extension(landmark)
+                    print(f'trackid {trackid}: {extensions}')
 
                     x1, y1 = x1y1
                     rotated_image_width, _, left_hand_0_or_right_hand_1 = rotated_image_size_leftright
