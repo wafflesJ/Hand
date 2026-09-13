@@ -18,7 +18,7 @@ from model import HandLandmark
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
 
-VIDEO = 0
+VIDEO = True
 
 
 def calculate_finger_extension(landmark):
@@ -143,13 +143,14 @@ def main():
     ]
 
     cap = None
-    img = cv.imread("images/paper/2F8Ng7620ANA7tEK.png")
+    img = None 
     if VIDEO:
         cap = cv.VideoCapture(cap_device)
         cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
         cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
         cap_fps = cap.get(cv.CAP_PROP_FPS)
- 
+    else:
+        img = cv.imread("images/paper/2F8Ng7620ANA7tEK.png")
 
     palm_detection = PalmDetection(score_threshold=min_detection_confidence)
     hand_landmark = HandLandmark()
