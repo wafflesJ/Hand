@@ -2,6 +2,7 @@
 
 import csv
 import copy
+import os
 import argparse
 import itertools
 from math import degrees
@@ -373,7 +374,8 @@ def main():
 
                     # Print finger extension estimates
                     extensions = calculate_finger_extension(landmark)
-                    print(f'trackid {trackid}: {extensions}')
+                    os.system('cls')
+                    print(f'Finger Extensions - trackid {trackid}:\n{extensions}')
 
                     x1, y1 = x1y1
                     rotated_image_width, _, left_hand_0_or_right_hand_1 = rotated_image_size_leftright
