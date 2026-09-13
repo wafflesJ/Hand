@@ -2,8 +2,8 @@
 
 import csv
 import copy
-import os
 import argparse
+import serial
 import itertools
 from math import degrees
 from collections import Counter
@@ -195,6 +195,10 @@ def main():
     prev_number = -1
     image = None
 
+    # Serial port configuration for Arduino Uno
+    ser = serial.Serial('COM3', 9600, timeout=1)
+    print(f'Serial connected to COM3 at 9600 baud')
+
     while True:
         fps = cvFpsCalc.get()
 
@@ -372,10 +376,17 @@ def main():
                 for (trackid, x1y1), landmark, rotated_image_size_leftright, not_rotate_rect in \
                     zip(palm_trackid_box_x1y1s.items(), hand_landmarks, rotated_image_size_leftrights, not_rotate_rects):
 
-                    # Print finger extension estimates
+                    # Print finger extension estimates and send to Arduino
                     extensions = calculate_finger_extension(landmark)
-                    os.system('cls')
+                    print('\033[2J\033[H', end='')
                     print(f'Finger Extensions - trackid {trackid}:\n{extensions}')
+                    
+                    # Send finger extension values over serial to Arduino
+                    try:
+                        data = f"F,{extensions['thumb']:.2f},{extensions['index']:.2f},{extensions['middle']:.2f},{extensions['ring']:.2f},{extensions['pinky']:.2f}\n"
+                        ser.write(data.encode('utf-8'))
+                    except Exception as e:
+                        print(f'Serial write error: {e}')
 
                     x1, y1 = x1y1
                     rotated_image_width, _, left_hand_0_or_right_hand_1 = rotated_image_size_leftright
@@ -557,6 +568,8 @@ def main():
 
    
     cv.destroyAllWindows()
+    ser.close()
+    print('Serial port closed')
 
 
 def select_mode(key, mode, auto=False, prev_number=-1):
