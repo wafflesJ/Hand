@@ -199,8 +199,10 @@ def main():
     image = None
 
     # Serial port configuration for Arduino Uno
-    ser = serial.Serial(COM, 9600, timeout=1)
-    print(f'Serial connected to COM3 at 9600 baud')
+    try:
+        ser = serial.Serial(COM, 9600, timeout=1)
+    except:
+        print("FAILED TO CONNECT UART")
 
     while True:
         fps = cvFpsCalc.get()
