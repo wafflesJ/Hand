@@ -18,6 +18,8 @@ from model import HandLandmark
 from model import KeyPointClassifier
 from model import PointHistoryClassifier
 
+VIDEO = 0
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -69,7 +71,6 @@ def get_args():
 
 
 def main():
-    # 引数解析 #################################################################
     args = get_args()
 
     if not args.image:
@@ -88,27 +89,21 @@ def main():
         [13,17],[17,18],[18,19],[19,20],[0,17],
     ]
 
-    # カメラ準備 ###############################################################
-    cap = cv.VideoCapture(cap_device)
-    cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
-    cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
-    cap_fps = cap.get(cv.CAP_PROP_FPS)
-    fourcc = cv.VideoWriter_fourcc('m', 'p', '4', 'v')
-    video_writer = cv.VideoWriter(
-        filename='output.mp4',
-        fourcc=fourcc,
-        fps=cap_fps,
-        frameSize=(cap_width, cap_height),
-    )
+    cap = None
+    img = cv.imread("images/paper/2F8Ng7620ANA7tEK.png")
+    if VIDEO:
+        cap = cv.VideoCapture(cap_device)
+        cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
+        cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+        cap_fps = cap.get(cv.CAP_PROP_FPS)
+ 
 
-    # モデルロード #############################################################
     palm_detection = PalmDetection(score_threshold=min_detection_confidence)
     hand_landmark = HandLandmark()
 
     keypoint_classifier = KeyPointClassifier()
     point_history_classifier = PointHistoryClassifier()
 
-    # ラベル読み込み ###########################################################
     with open(
         'model/keypoint_classifier/keypoint_classifier_label.csv',
         encoding='utf-8-sig',
@@ -126,29 +121,18 @@ def main():
             row[0] for row in point_history_classifier_labels
         ]
 
-    # FPS計測モジュール ########################################################
     cvFpsCalc = CvFpsCalc(buffer_len=10)
 
-    # 座標履歴 ################################################################
     history_length = 16
     # point_history = deque(maxlen=history_length)
     point_history = {}
     pre_point_history = {}
 
-    # フィンガージェスチャー履歴 #################################################
     gesture_history_length = 10
     finger_gesture_history = {}
 
-    # 手のひらトラッキング用手のひら中心座標最新履歴 #################################
-    # {
-    #   int(trackid1): [cx, cy],
-    #   int(trackid2): [cx, cy],
-    #   int(trackid3): [cx, cy],
-    #     :
-    # }
     palm_trackid_cxcy = {}
 
-    #  #######################################################################
     mode = 0
     wh_ratio = cap_width / cap_height
 
@@ -159,40 +143,38 @@ def main():
     while True:
         fps = cvFpsCalc.get()
 
-        # キー処理(ESC：終了) #################################################
         key = cv.waitKey(1) if not args.image else cv.waitKey(0) if image is not None and args.image else cv.waitKey(1)
         if key == 27:  # ESC
             break
         number, mode, auto, prev_number = select_mode(key, mode, auto, prev_number)
 
-        # カメラキャプチャ #####################################################
-        ret, image = cap.read()
+        ret, image = None, None
+        if VIDEO:
+            ret, image = cap.read()
+        else:
+            ret, image = True, img
+            
         if not ret:
             break
         image = image if args.disable_image_flip else cv.flip(image, 1) # ミラー表示
         debug_image = copy.deepcopy(image)
 
-        # 検出実施 #############################################################
-
-        # ============================================================= PalmDetection
-        # ハンドディテクション - シングルバッチ処理
+       
         hands = palm_detection(image)
-        # hand: sqn_rr_size, rotation, sqn_rr_center_x, sqn_rr_center_y
-
+      
         rects = []
         not_rotate_rects = []
         rects_tuple = None
         cropted_rotated_hands_images = []
 
-        # 手の検出件数がゼロになったらトラッキング用手のひら中心座標最新履歴を初期化
         if len(hands) == 0:
             palm_trackid_cxcy = {}
-        # トラッキング用手のひら中心座標最新履歴とバウンディングボックスの検出順序紐づけリスト
+
         palm_trackid_box_x1y1s = {}
 
         if len(hands) > 0:
             for hand in hands:
-                # hand: sqn_rr_size, rotation, sqn_rr_center_x, sqn_rr_center_y
+
                 sqn_rr_size = hand[0]
                 rotation = hand[1]
                 sqn_rr_center_x = hand[2]
@@ -209,12 +191,12 @@ def main():
                 ymin = max(0, ymin)
                 ymax = min(cap_height, ymax)
                 degree = degrees(rotation)
-                # [boxcount, cx, cy, width, height, degree]
+
                 rects.append([cx, cy, (xmax-xmin), (ymax-ymin), degree])
 
             rects = np.asarray(rects, dtype=np.float32)
 
-            # 回転角度をゼロ度に補正した手のひら画像の取得
+
             cropted_rotated_hands_images = rotate_and_crop_rectangle(
                 image=image,
                 rects_tmp=rects,
@@ -228,7 +210,7 @@ def main():
                 box = cv.boxPoints(rects_tuple).astype(np.intp)
                 cv.drawContours(debug_image, [box], 0,(0,0,255), 2, cv.LINE_AA)
 
-                # 回転非考慮の領域の描画, オレンジ色の枠
+
                 rcx = int(rect[0])
                 rcy = int(rect[1])
                 half_w = int(rect[2] // 2)
@@ -241,9 +223,9 @@ def main():
                 text_x = min(text_x, cap_width-120)
                 text_y = max(y1-15, 45)
                 text_y = min(text_y, cap_height-20)
-                # [boxcount, rcx, rcy, x1, y1, x2, y2, height, degree]
+
                 not_rotate_rects.append([rcx, rcy, x1, y1, x2, y2, 0])
-                # 検出枠のサイズ WxH
+
                 cv.putText(
                     debug_image,
                     f'{y2-y1}x{x2-x1}',
@@ -264,7 +246,7 @@ def main():
                     1,
                     cv.LINE_AA,
                 )
-                # 検出枠の描画
+
                 cv.rectangle(
                     debug_image,
                     (x1,y1),
@@ -273,7 +255,7 @@ def main():
                     2,
                     cv.LINE_AA,
                 )
-                # 検出領域の中心座標描画
+
                 cv.circle(
                     debug_image,
                     (rcx, rcy),
@@ -509,14 +491,11 @@ def main():
         debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number, auto)
 
-        # 画面反映 #############################################################
-        cv.imshow('Hand Gesture Recognition', debug_image)
-        video_writer.write(debug_image)
 
-    if video_writer:
-        video_writer.release()
-    if cap:
-        cap.release()
+        cv.imshow('Hand Gesture Recognition', debug_image)
+        #video_writer.write(debug_image)
+
+   
     cv.destroyAllWindows()
 
 

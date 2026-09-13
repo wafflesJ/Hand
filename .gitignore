@@ -3,4 +3,5 @@ __pycache__/
 *.engine
 *.profile
 *.mp4
+images
 test_distance_calc.py
