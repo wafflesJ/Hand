@@ -22,6 +22,8 @@ from model import PointHistoryClassifier
 
 VIDEO = True
 
+COM = '/dev/cu.usbmodem101'
+
 
 def calculate_finger_extension(landmark):
     """Calculate estimated extension of each finger from landmark coordinates.
@@ -197,7 +199,7 @@ def main():
     image = None
 
     # Serial port configuration for Arduino Uno
-    ser = serial.Serial('COM3', 9600, timeout=1)
+    ser = serial.Serial(COM, 9600, timeout=1)
     print(f'Serial connected to COM3 at 9600 baud')
 
     while True:
