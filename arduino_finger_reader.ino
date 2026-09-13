@@ -63,8 +63,11 @@ void loop() {
         Serial.println(", Pinky=");
         Serial.println(finger_values[4]);
 
+        if(finger_values[2] > 135 && finger_values[1] < 135 && finger_values[3] < 135 && finger_values[4] < 135)
+          finger_values[2] = max(finger_values[1], max(finger_values[3], finger_values[4]));
+
         for(int i = 0; i<NUM_FINGERS; i++) {
-          int angle = map(finger_values[i],90,180,0,180);
+          int angle = map(finger_values[i],180,90,0,180);
           servos[i].write(angle);
         }
 
