@@ -4,6 +4,14 @@
 #define MAX_DATA_LENGTH 100
 #define NUM_FINGERS 5
 
+constexpr int ranges[NUM_FINGERS][4] = {
+  {180, 90, 0, 90},
+  {180, 90, 0, 90},
+  {180, 90, 0, 90},
+  {180, 90, 0, 90},
+  {180, 90, 0, 90}
+};
+
 // Buffer for incoming serial data
 char buffer[MAX_DATA_LENGTH];
 int bufferIndex = 0;
@@ -75,7 +83,7 @@ void loop() {
           finger_values[2] = max(finger_values[1], max(finger_values[3], finger_values[4]));
 
         for(int i = 0; i<NUM_FINGERS; i++) {
-          int angle = map(finger_values[i],180,90,0,180);
+          int angle = map(finger_values[i],ranges[i][0], ranges[i][1], ranges[i][2], ranges[i][3]);
           servos[i].write(angle);
         }
 
