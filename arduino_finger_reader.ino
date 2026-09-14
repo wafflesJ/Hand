@@ -21,6 +21,14 @@ void setup() {
     pinMode(9+i, OUTPUT);
     servos[i].attach(9+i);
   }
+
+  for(int i = 0; i<NUM_FINGERS; i++) {
+    servos[i].write(0);
+    delay(500);
+    servos[i].write(180);
+    delay(500);
+  }
+
 }
 
 void loop() {
@@ -52,7 +60,7 @@ void loop() {
         }
         
         // Print parsed values for verification
-        Serial.print("Finger Extensions: Thumb=");
+        Serial.print("Thumb=");
         Serial.print(finger_values[0]);
         Serial.print(", Index=");
         Serial.print(finger_values[1]);
