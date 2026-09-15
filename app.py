@@ -258,8 +258,25 @@ def main():
 
                 rects.append([cx, cy, (xmax-xmin), (ymax-ymin), degree])
 
-            rects = np.asarray(rects, dtype=np.float32)
-
+            # Filter hands: only keep the one with lowest trackid that's large enough
+            min_area_ratio = 1/6
+            screen_area = cap_width * cap_height
+            
+            # Calculate area for each rect and filter
+            valid_indices = []
+            for i, rect in enumerate(rects):
+                width = rect[2]
+                height = rect[3]
+                area = width * height
+                if area >= (screen_area * min_area_ratio):
+                    valid_indices.append(i)
+            
+            # Only process the first valid hand (lowest index = lowest trackid)
+            if len(valid_indices) > 0:
+                selected_idx = valid_indices[0]
+                rects = np.array([rects[selected_idx]], dtype=np.float32)
+            else:
+                rects = np.array([], dtype=np.float32)
 
             cropted_rotated_hands_images = rotate_and_crop_rectangle(
                 image=image,
