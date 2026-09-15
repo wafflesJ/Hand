@@ -5,7 +5,7 @@
 #define NUM_FINGERS 5
 
 constexpr int ranges[NUM_FINGERS][4] = {
-  {180, 90, 180, 0},
+  {180, 110, 180, 0},
   {180, 90, 180, 0},
   {180, 90, 180, 0},
   {180, 90, 0, 180},
