@@ -1,15 +1,15 @@
 #include <string.h>
-#include <servo.h>
+#include <Servo.h>
 
 #define MAX_DATA_LENGTH 100
 #define NUM_FINGERS 5
 
 constexpr int ranges[NUM_FINGERS][4] = {
-  {180, 90, 0, 90},
-  {180, 90, 0, 90},
-  {180, 90, 0, 90},
-  {180, 90, 0, 90},
-  {180, 90, 0, 90}
+  {180, 90, 180, 0},
+  {180, 90, 180, 0},
+  {180, 90, 180, 0},
+  {180, 90, 0, 180},
+  {180, 90, 0, 180}
 };
 
 // Buffer for incoming serial data
@@ -28,13 +28,15 @@ void setup() {
   for(int i = 0; i<NUM_FINGERS; i++) {
     pinMode(9+i, OUTPUT);
     servos[i].attach(9+i);
+    servos[i].write(ranges[i][3]);
   }
+  //while(1);
 
   for(int i = 0; i<NUM_FINGERS; i++) {
-    servos[i].write(0);
-    delay(500);
-    servos[i].write(180);
-    delay(500);
+    servos[i].write(ranges[i][2]);
+    delay(1000);
+    servos[i].write(ranges[i][3]);
+    delay(1000);
   }
 
 }
@@ -83,7 +85,7 @@ void loop() {
           finger_values[2] = max(finger_values[1], max(finger_values[3], finger_values[4]));
 
         for(int i = 0; i<NUM_FINGERS; i++) {
-          int angle = map(finger_values[i],ranges[i][0], ranges[i][1], ranges[i][2], ranges[i][3]);
+          int angle = map(finger_values[i],ranges[i][0], ranges[i][1], ranges[i][3], ranges[i][2]);
           servos[i].write(angle);
         }
 
