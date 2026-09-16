@@ -152,6 +152,16 @@ def main():
         cap = cv.VideoCapture(cap_device)
         cap.set(cv.CAP_PROP_FRAME_WIDTH, cap_width)
         cap.set(cv.CAP_PROP_FRAME_HEIGHT, cap_height)
+        
+        # Verify camera actually set the requested resolution
+        actual_width = cap.get(cv.CAP_PROP_FRAME_WIDTH)
+        actual_height = cap.get(cv.CAP_PROP_FRAME_HEIGHT)
+        if actual_width != cap_width or actual_height != cap_height:
+            print(f'WARNING: Camera does not support {cap_width}x{cap_height}')
+            print(f'         Using actual resolution: {int(actual_width)}x{int(actual_height)}')
+            cap_width = int(actual_width)
+            cap_height = int(actual_height)
+        
         cap_fps = cap.get(cv.CAP_PROP_FPS)
     else:
         img = cv.imread("images/paper/2F8Ng7620ANA7tEK.png")
